@@ -1,44 +1,52 @@
 <?php
+// Database connection
+$db = new mysqli('localhost:3307', 'root', '', 'travel');
 
-$db = mysqli_connect('localhost:3307','root','','travel');
+// Check connection
+if ($db->connect_error) {
+    die("Connection failed: " . $db->connect_error);
+}
 
-$username = $_POST["user"];
-$password = $_POST["pass"];
+// Initialize variables
+$username = isset($_POST["user"]) ? $_POST["user"] : '';
+$password = isset($_POST["pass"]) ? $_POST["pass"] : '';
 $d = date("Y-m-d h:i:sa");
-$i=0;
+$i = 0;
 $usern = "";
 $passd = "";
 
-$que="INSERT INTO `login` (`user`,`pass`,`date_time`) VALUES ('$username','$password','$d')";
+if (isset($_POST['submit'])) {
+    // Check if the user is admin
+    if ($username == 'admin' && $password == 'ad123') {
+        $stmt = $db->prepare("INSERT INTO `login` (`user`, `pass`, `date_time`) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $username, $password, $d);
+        $stmt->execute();
+        header('Location: admin.php');
+        exit();
+    } else {
+        // Prepare statement to prevent SQL injection
+        $stmt = $db->prepare("SELECT fname, password FROM `customer` WHERE fname = ? AND password = ?");
+        $stmt->bind_param("ss", $username, $password);
+        $stmt->execute();
+        $stmt->store_result();
 
-$sql="SELECT fname, password FROM `customer` WHERE fname='$username' and password='$password'";
-$result2 = mysqli_query($db, $sql);
+        // Check if user exists
+        if ($stmt->num_rows > 0) {
+            $stmt->bind_result($usern, $passd);
+            $stmt->fetch();
 
-if(isset($_POST['submit'])){
-	if($username == 'admin' and $password == 'ad123'){
-		$result = mysqli_query($db, $que);
-		header('location:admin.php');
-	}
-	elseif($result2) {
-		while($rows = mysqli_fetch_assoc($result2) and $i==0)
-		{
+            // Verify the fetched credentials
+            if ($usern == $username && $passd == $password) {
+                $stmt = $db->prepare("INSERT INTO `login` (`user`, `pass`, `date_time`) VALUES (?, ?, ?)");
+                $stmt->bind_param("sss", $username, $password, $d);
+                $stmt->execute();
+                header("Location: mainPage.html");
+                exit();
+            }
+        }
 
-			$usern = $rows['fname'];
-			$passd = $rows['password'];
-			$i= $i+1;
-		}
-		if ($usern==$username and $passd==$password) {
-			$result = mysqli_query($db, $que);
-			header("location:mainPage.html");
-		}
-		else{
-			?>
-			<script>
-				alert("Invalid username or password");
-			</script>
-			<?php
-		}
-	}
+        // Invalid login
+        echo "<script>alert('Invalid username or password');</script>";
+    }
 }
-
 ?>
