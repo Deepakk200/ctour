@@ -1,6 +1,6 @@
 <?php
 
-$con=mysqli_connect('localhost:3307','root','','travel');
+$con=mysqli_connect('localhost:4306','root','','travel');
 
 
 $firstname=$_POST['fname'];
